@@ -34,6 +34,9 @@ jobs:
 #        run: npm audit signatures
 
       - name: Generate GitHub App Token
+        env:
+            APP_ID: ${{ secrets.GH_APP_ID }}
+            GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
         run: |
           chmod +x generate-app-token.sh
           ./generate-app-token.sh
