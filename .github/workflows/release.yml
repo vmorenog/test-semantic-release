@@ -33,7 +33,28 @@ jobs:
       - name: Verify the integrity of provenance attestations and registry signatures for installed dependencies
         run: npm audit signatures
 
+      - name: Generate GitHub App Token
+        id: app_auth
+        run: |
+          APP_ID=${{ secrets.GH_APP_ID }}
+          PRIVATE_KEY="${{ secrets.GH_APP_PRIVATE_KEY }}"
+
+          # Convert private key to a format that openssl can read
+          echo "$PRIVATE_KEY" > private-key.pem
+
+          # Generate JWT
+          HEADER=$(echo -n '{"alg":"RS256","typ":"JWT"}' | base64 | tr -d '=' | tr '/+' '_-')
+          PAYLOAD=$(echo -n "{\"iat\":$(date +%s),\"exp\":$(( $(date +%s) + 600 )),\"iss\":$APP_ID}" | base64 | tr -d '=' | tr '/+' '_-')
+          SIGNATURE=$(echo -n "$HEADER.$PAYLOAD" | openssl dgst -sha256 -sign private-key.pem | base64 | tr -d '=' | tr '/+' '_-')
+          JWT="$HEADER.$PAYLOAD.$SIGNATURE"
+
+          # Get Installation Token
+          INSTALLATION_ID=$(curl -s -H "Authorization: Bearer $JWT" -H "Accept: application/vnd.github.v3+json" https://api.github.com/app/installations | jq '.[0].id')
+          TOKEN=$(curl -s -X POST -H "Authorization: Bearer $JWT" -H "Accept: application/vnd.github.v3+json" https://api.github.com/app/installations/$INSTALLATION_ID/access_tokens | jq -r .token)
+
+          echo "::set-output name=token::$TOKEN"
+
       - name: Release
         env:
-          GITHUB_TOKEN: ${{ secrets.VICTOR_PAT_TEST_SEMANTIC_RELEASE }}
+          GITHUB_TOKEN: ${{ steps.app_auth.outputs.token }}
         run: npx semantic-release
