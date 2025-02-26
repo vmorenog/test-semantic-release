@@ -6,8 +6,13 @@ set -e
 APP_ID=${GH_APP_ID}
 PRIVATE_KEY=${GH_APP_PRIVATE_KEY}
 
-if [[ -z "$APP_ID" || -z "$PRIVATE_KEY" ]]; then
-  echo "❌ ERROR: GH_APP_ID or GH_APP_PRIVATE_KEY is not set!"
+if [[ -z "$APP_ID" ]]; then
+  echo "❌ ERROR: GH_APP_ID is not set!"
+  exit 1
+fi
+
+if [[ -z "$PRIVATE_KEY" ]]; then
+  echo "❌ ERROR: GH_APP_PRIVATE_KEY is not set!"
   exit 1
 fi
 
